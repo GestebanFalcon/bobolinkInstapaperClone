@@ -1,0 +1,21 @@
+{
+  "name": "bobolinkinstapaper",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node src/index.ts",
+    "build": "tsc --build",
+    "dev": "nodemon src/index.ts"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@types/puppeteer": "^7.0.4",
+    "nodemon": "^3.1.1",
+    "puppeteer": "^22.10.0",
+    "ts-node": "^10.9.2"
+  }
+}
