@@ -37,15 +37,24 @@ const main = async () => {
 
             const newArray = [];
             for (let i = 0; i < childNodes.length; i++) {
+
+                if (childNodes[i].nodeType === 1) {
+                    const element = childNodes[i] as HTMLElement;
+                    if (element.id && element.id.includes("google_ads")) {
+                        continue;
+                    }
+                }
+
                 if (childNodes[i].nodeValue) {
                     newArray.push(childNodes[i].nodeValue);
                 }
+
                 if (childNodes[i].hasChildNodes()) {
                     newArray.push(await checkNodes(childNodes[i].childNodes));
                 }
             }
             return newArray;
-                
+
         }
 
         return (await checkNodes(e));
