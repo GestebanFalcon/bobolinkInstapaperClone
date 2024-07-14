@@ -3,19 +3,19 @@ import checkNodes from "./checkNodes";
 
 const main = async () => {
     const browser = await puppeteer.launch({
-        // headless: false,
+        headless: false,
         defaultViewport: null,
         userDataDir: "./tmp"
     });
     const page = await browser.newPage();
-    await page.goto("https://web.ics.purdue.edu/~gchopra/class/public/pages/webdesign/05_simple.html");
+    await page.goto("https://www.allrecipes.com/lemon-chicken-and-rice-casserole-recipe-8635802");
     // const textHandles = await page.$$("p");
     // for(const textHandle of textHandles) {
     //     console.log(await page.evaluate(e => e.innerText, textHandle));
     // }
-    const aHandle = await page.evaluateHandle(() => document.body);
+    const bodyHandle = await page.evaluateHandle(() => document.body);
 
-    const bodyChildNodes = await page.evaluateHandle(body => body.childNodes, aHandle);
+    const bodyChildNodes = await page.evaluateHandle(body => body.childNodes, bodyHandle);
 
     const bodyChildString = await page.evaluateHandle(bodyChildren => {
         const newArray = [];
@@ -30,12 +30,21 @@ const main = async () => {
     }, bodyChildNodes);
 
 
+    interface fakeNode {
+        text?: string,
+        children?: fakeNode[],
+        name: string
+    }
 
     const bodyChildEval = await page.evaluateHandle(async (e) => {
 
-        async function checkNodes(childNodes: NodeListOf<ChildNode>): Promise<any> {
+        async function checkNodes(childNodes: NodeListOf<ChildNode>, name: string): Promise<any> {
 
-            const newArray = [];
+            const newFakeNode: {children: any[], name: string, text?: string} = {
+                children: [],
+                name: name,
+            };
+
             for (let i = 0; i < childNodes.length; i++) {
 
                 if (childNodes[i].nodeType === 1) {
@@ -46,19 +55,50 @@ const main = async () => {
                 }
 
                 if (childNodes[i].nodeValue) {
-                    newArray.push(childNodes[i].nodeValue);
+                    newFakeNode.children.push(
+                        {
+                            name: "#text",
+                            text:  childNodes[i].nodeValue
+                        }   
+                    );
                 }
 
                 if (childNodes[i].hasChildNodes()) {
-                    newArray.push(await checkNodes(childNodes[i].childNodes));
+                    newFakeNode.children.push(await checkNodes(childNodes[i].childNodes, childNodes[i].nodeName));
                 }
             }
-            return newArray;
+            return newFakeNode;
 
         }
 
-        return (await checkNodes(e));
+        const topFakeNode = await checkNodes(e, "main")
+        document.body = document.createElement("body")
+        async function elementBuild(parent: HTMLElement, fakeNode: fakeNode){
+
+            let currentElement: Text | HTMLElement = document.createTextNode("");
+            //make ts happy
+
+            if (fakeNode.text) {
+                currentElement = document.createTextNode(fakeNode.text);
+            }
+
+            if (fakeNode.children) {
+                currentElement  = document.createElement(fakeNode.name);
+                for (let i = 0; i < fakeNode.children.length; i++){
+                    await elementBuild(currentElement, fakeNode.children[i])
+                }
+            }
+
+            parent.appendChild(currentElement)
+
+        }
+        
+        await elementBuild(document.body, topFakeNode)
+
+        return (topFakeNode);
     }, bodyChildNodes);
+
+
 
     console.log(await bodyChildEval.jsonValue());
 
